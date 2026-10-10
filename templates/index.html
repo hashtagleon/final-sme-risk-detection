@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SME Risk Predictor</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1b2733;--mut:#5d6b7a;--line:#dbe1e8;--brand:#1F4E79;--low:#2E8B57;--med:#E69F00;--high:#C0392B}
+@media(prefers-color-scheme:dark){:root{--bg:#10161d;--card:#18212b;--ink:#e8edf2;--mut:#9aa8b6;--line:#2b3846;--brand:#6fa8dc}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card h2{font-size:1rem;margin:0 0 12px;color:var(--brand)}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:520px){.f{grid-template-columns:1fr}}
+label{display:block;font-size:.82rem;color:var(--mut);margin-bottom:3px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus,select:focus{outline:2px solid var(--brand);outline-offset:1px}
+button{margin-top:16px;width:100%;padding:12px;border:0;border-radius:8px;background:var(--brand);color:#fff;font:600 1rem inherit;cursor:pointer}
+button:disabled{opacity:.6}
+.badge{display:inline-block;padding:6px 16px;border-radius:999px;color:#fff;font-weight:700;font-size:1.3rem}
+.LOW{background:var(--low)}.MEDIUM{background:var(--med);color:#222}.HIGH{background:var(--high)}
+.bar{margin:10px 0}.bar span{font-size:.85rem;color:var(--mut)}.track{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.fill{height:100%}
+.err{color:var(--high);font-size:.9rem;margin-top:10px}.hint{color:var(--mut);font-size:.85rem}
+</style></head><body><div class="wrap">
+<h1>SME Loan Risk Predictor</h1>
+<p class="sub">Enter the applicant's details to estimate the risk level (LOW, MEDIUM or HIGH).</p>
+<div class="grid">
+<form class="card" id="form"><h2>Applicant details</h2><div class="f">
+{% for name,opts in choices.items() %}<div><label for="{{name}}">{{name.replace('_',' ').title()}}</label>
+<select id="{{name}}" name="{{name}}">{% for o in opts %}<option>{{o}}</option>{% endfor %}</select></div>{% endfor %}
+<div><label for="business_age_years">Business age (years)</label><input id="business_age_years" name="business_age_years" type="number" min="0" step="1" value="5" required></div>
+<div><label for="owner_experience_years">Owner experience (years)</label><input id="owner_experience_years" name="owner_experience_years" type="number" min="0" step="1" value="4" required></div>
+<div><label for="banking_years">Banking history (years)</label><input id="banking_years" name="banking_years" type="number" min="0" step="1" value="3" required></div>
+<div><label for="num_employees">Employees</label><input id="num_employees" name="num_employees" type="number" min="1" step="1" value="3" required></div>
+<div><label for="annual_revenue">Annual revenue (BDT)</label><input id="annual_revenue" name="annual_revenue" type="number" min="1" step="any" value="3400000" required></div>
+<div><label for="loan_amount">Loan amount (BDT)</label><input id="loan_amount" name="loan_amount" type="number" min="1" step="any" value="800000" required></div>
+<div><label for="debt_to_asset_ratio">Debt-to-asset ratio</label><input id="debt_to_asset_ratio" name="debt_to_asset_ratio" type="number" min="0" step="0.01" value="0.45" required></div>
+<div><label for="collateral_value">Collateral value (BDT)</label><input id="collateral_value" name="collateral_value" type="number" min="0" step="any" value="500000" required></div>
+<div><label for="past_defaults">Past defaults</label><input id="past_defaults" name="past_defaults" type="number" min="0" step="1" value="0" required></div>
+</div><button id="go" type="submit">Predict risk</button><div class="err" id="err" role="alert"></div></form>
+<div class="card"><h2>Result</h2><div id="out"><p class="hint">Your prediction will appear here.</p></div></div>
+</div>
+<p class="hint" style="margin-top:16px">Academic project. The model is trained on a synthetic SME dataset and is not for real lending decisions.</p>
+</div>
+<script>
+const form=document.getElementById('form'),out=document.getElementById('out'),err=document.getElementById('err'),go=document.getElementById('go');
+const col={LOW:'var(--low)',MEDIUM:'var(--med)',HIGH:'var(--high)'};
+form.addEventListener('submit',async e=>{e.preventDefault();err.textContent='';go.disabled=true;
+ try{const r=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+  const d=await r.json();if(!r.ok){err.textContent=(d.details||[d.error]).join('; ');return}
+  const order=['LOW','MEDIUM','HIGH'];
+  out.innerHTML=`<span class="badge ${d.risk_level}">${d.risk_level}</span><p class="hint">Model confidence by class</p>`+
+   order.map(c=>{const p=(d.probabilities[c]*100).toFixed(1);return `<div class="bar"><span>${c} &middot; ${p}%</span><div class="track"><div class="fill" style="width:${p}%;background:${col[c]}"></div></div></div>`}).join('');
+ }catch(x){err.textContent='Could not reach the server.'}finally{go.disabled=false}});
+</script></body></html>
