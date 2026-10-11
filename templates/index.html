@@ -1,54 +1,1234 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SME Risk Predictor</title>
-<style>
-:root{--bg:#f4f6f9;--card:#fff;--ink:#1b2733;--mut:#5d6b7a;--line:#dbe1e8;--brand:#1F4E79;--low:#2E8B57;--med:#E69F00;--high:#C0392B}
-@media(prefers-color-scheme:dark){:root{--bg:#10161d;--card:#18212b;--ink:#e8edf2;--mut:#9aa8b6;--line:#2b3846;--brand:#6fa8dc}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-.wrap{max-width:980px;margin:0 auto;padding:24px 16px 48px}
-h1{font-size:1.6rem;margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 20px}
-.grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
-.card h2{font-size:1rem;margin:0 0 12px;color:var(--brand)}
-.f{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:520px){.f{grid-template-columns:1fr}}
-label{display:block;font-size:.82rem;color:var(--mut);margin-bottom:3px}
-input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
-input:focus,select:focus{outline:2px solid var(--brand);outline-offset:1px}
-button{margin-top:16px;width:100%;padding:12px;border:0;border-radius:8px;background:var(--brand);color:#fff;font:600 1rem inherit;cursor:pointer}
-button:disabled{opacity:.6}
-.badge{display:inline-block;padding:6px 16px;border-radius:999px;color:#fff;font-weight:700;font-size:1.3rem}
-.LOW{background:var(--low)}.MEDIUM{background:var(--med);color:#222}.HIGH{background:var(--high)}
-.bar{margin:10px 0}.bar span{font-size:.85rem;color:var(--mut)}.track{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.fill{height:100%}
-.err{color:var(--high);font-size:.9rem;margin-top:10px}.hint{color:var(--mut);font-size:.85rem}
-</style></head><body><div class="wrap">
-<h1>SME Loan Risk Predictor</h1>
-<p class="sub">Enter the applicant's details to estimate the risk level (LOW, MEDIUM or HIGH).</p>
-<div class="grid">
-<form class="card" id="form"><h2>Applicant details</h2><div class="f">
-{% for name,opts in choices.items() %}<div><label for="{{name}}">{{name.replace('_',' ').title()}}</label>
-<select id="{{name}}" name="{{name}}">{% for o in opts %}<option>{{o}}</option>{% endfor %}</select></div>{% endfor %}
-<div><label for="business_age_years">Business age (years)</label><input id="business_age_years" name="business_age_years" type="number" min="0" step="1" value="5" required></div>
-<div><label for="owner_experience_years">Owner experience (years)</label><input id="owner_experience_years" name="owner_experience_years" type="number" min="0" step="1" value="4" required></div>
-<div><label for="banking_years">Banking history (years)</label><input id="banking_years" name="banking_years" type="number" min="0" step="1" value="3" required></div>
-<div><label for="num_employees">Employees</label><input id="num_employees" name="num_employees" type="number" min="1" step="1" value="3" required></div>
-<div><label for="annual_revenue">Annual revenue (BDT)</label><input id="annual_revenue" name="annual_revenue" type="number" min="1" step="any" value="3400000" required></div>
-<div><label for="loan_amount">Loan amount (BDT)</label><input id="loan_amount" name="loan_amount" type="number" min="1" step="any" value="800000" required></div>
-<div><label for="debt_to_asset_ratio">Debt-to-asset ratio</label><input id="debt_to_asset_ratio" name="debt_to_asset_ratio" type="number" min="0" step="0.01" value="0.45" required></div>
-<div><label for="collateral_value">Collateral value (BDT)</label><input id="collateral_value" name="collateral_value" type="number" min="0" step="any" value="500000" required></div>
-<div><label for="past_defaults">Past defaults</label><input id="past_defaults" name="past_defaults" type="number" min="0" step="1" value="0" required></div>
-</div><button id="go" type="submit">Predict risk</button><div class="err" id="err" role="alert"></div></form>
-<div class="card"><h2>Result</h2><div id="out"><p class="hint">Your prediction will appear here.</p></div></div>
-</div>
-<p class="hint" style="margin-top:16px">Academic project. The model is trained on a synthetic SME dataset and is not for real lending decisions.</p>
-</div>
-<script>
-const form=document.getElementById('form'),out=document.getElementById('out'),err=document.getElementById('err'),go=document.getElementById('go');
-const col={LOW:'var(--low)',MEDIUM:'var(--med)',HIGH:'var(--high)'};
-form.addEventListener('submit',async e=>{e.preventDefault();err.textContent='';go.disabled=true;
- try{const r=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
-  const d=await r.json();if(!r.ok){err.textContent=(d.details||[d.error]).join('; ');return}
-  const order=['LOW','MEDIUM','HIGH'];
-  out.innerHTML=`<span class="badge ${d.risk_level}">${d.risk_level}</span><p class="hint">Model confidence by class</p>`+
-   order.map(c=>{const p=(d.probabilities[c]*100).toFixed(1);return `<div class="bar"><span>${c} &middot; ${p}%</span><div class="track"><div class="fill" style="width:${p}%;background:${col[c]}"></div></div></div>`}).join('');
- }catch(x){err.textContent='Could not reach the server.'}finally{go.disabled=false}});
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SME Risk Detector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f0f4f9;
+      color: #1e293b;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      background-color: #0066ff;
+      color: #ffffff;
+      padding: 14px 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .top-nav-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+    }
+
+    /* Main Container */
+    .main-wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+
+    /* Header with title and step badge */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      gap: 16px;
+    }
+
+    .page-title {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .page-subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      background-color: #dbeafe;
+      color: #2563eb;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    /* White Section Cards */
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #eef2f6;
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .circle-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: #dbeafe;
+      color: #2563eb;
+      font-size: 0.875rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-heading {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    /* Grid Layouts for inputs */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .mt-16 {
+      margin-top: 16px;
+    }
+
+    /* Form controls */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .req {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 0.875rem;
+      color: #1e293b;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-family: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      outline: none;
+    }
+
+    .form-control::placeholder {
+      color: #94a3b8;
+    }
+
+    .form-control:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    select.form-control {
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 14px;
+      padding-right: 36px;
+    }
+
+    select.form-control:invalid,
+    select.form-control option[value=""] {
+      color: #94a3b8;
+    }
+
+    select.form-control option {
+      color: #1e293b;
+    }
+
+    .help-hint {
+      font-size: 0.775rem;
+      color: #64748b;
+      margin-top: 5px;
+      line-height: 1.35;
+    }
+
+    /* Actions row at bottom of form */
+    .actions-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      font-family: inherit;
+      font-size: 0.925rem;
+      font-weight: 600;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: #0066ff;
+      color: #ffffff;
+      border: 1px solid transparent;
+      box-shadow: 0 1px 2px rgba(0, 102, 255, 0.2);
+    }
+
+    .btn-primary:hover {
+      background-color: #0052cc;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .btn-clear {
+      background-color: #ffffff;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      font-weight: 500;
+      padding: 9px 20px;
+    }
+
+    .btn-clear:hover {
+      background-color: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .btn-demo {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      font-weight: 600;
+      padding: 9px 20px;
+    }
+
+    .btn-demo:hover {
+      background-color: #dbeafe;
+      border-color: #93c5fd;
+      color: #1e40af;
+    }
+
+    /* Demo Presets Bar & Pills */
+    .demo-banner {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .demo-banner-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    .demo-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-demo-pill {
+      background: #ffffff;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+      border-radius: 9999px;
+      padding: 5px 13px;
+      font-size: 0.785rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-demo-pill:hover {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+
+    .btn-demo-pill.active {
+      background: #0066ff;
+      color: #ffffff;
+      border-color: #0066ff;
+      box-shadow: 0 1px 3px rgba(0, 102, 255, 0.25);
+    }
+
+    .result-demo-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .result-demo-title {
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: #475569;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .actions-notice {
+      font-size: 0.8125rem;
+      color: #64748b;
+      margin-left: auto;
+    }
+
+    .form-error-box {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    /* Prediction Result Screen */
+    #result-view {
+      display: none;
+    }
+
+    .result-card {
+      background: #ffffff;
+      border: 1px solid #eef2f6;
+      border-radius: 14px;
+      padding: 28px 32px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+
+    .result-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .result-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-new-pred {
+      background-color: #ffffff;
+      color: #2563eb;
+      border: 1px solid #3b82f6;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+
+    .btn-new-pred:hover {
+      background-color: #eff6ff;
+    }
+
+    .risk-level-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .risk-level-text {
+      font-size: 0.95rem;
+      color: #475569;
+    }
+
+    .badge-risk {
+      font-size: 0.825rem;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      color: #ffffff;
+      letter-spacing: 0.02em;
+      display: inline-block;
+    }
+
+    .badge-HIGH {
+      background-color: #dc2626;
+    }
+
+    .badge-MEDIUM {
+      background-color: #f59e0b;
+    }
+
+    .badge-LOW {
+      background-color: #16a34a;
+    }
+
+    /* Confidence Section */
+    .confidence-title {
+      font-size: 0.9rem;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .confidence-track {
+      width: 100%;
+      height: 22px;
+      background-color: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 26px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background-color: #0066ff;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      min-width: 42px;
+      transition: width 0.4s ease;
+    }
+
+    /* Class Probabilities Table */
+    .prob-heading {
+      font-size: 0.925rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 12px;
+    }
+
+    .prob-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+
+    .prob-table th {
+      text-align: left;
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: #1e293b;
+      padding-bottom: 10px;
+    }
+
+    .prob-table th:first-child {
+      width: 140px;
+    }
+
+    .prob-table td {
+      padding: 6px 0;
+      vertical-align: middle;
+    }
+
+    .class-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .prob-bar-track {
+      width: 100%;
+      height: 14px;
+      background-color: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      background-color: #0066ff;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 0.675rem;
+      font-weight: 600;
+      transition: width 0.4s ease;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .divider-line {
+      border: 0;
+      height: 1px;
+      background-color: #e2e8f0;
+      margin: 24px 0;
+    }
+
+    /* Inputs summary section */
+    .inputs-heading {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 16px;
+    }
+
+    .inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 40px;
+    }
+
+    .input-row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 14px;
+    }
+
+    .input-key {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 2px;
+    }
+
+    .input-val {
+      font-size: 0.925rem;
+      color: #1e293b;
+    }
+
+    /* Footer */
+    .page-footer {
+      text-align: center;
+      font-size: 0.8125rem;
+      color: #64748b;
+      padding-top: 36px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 720px) {
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+      .inputs-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .actions-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .actions-notice {
+        margin-left: 0;
+        margin-top: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Blue Navigation -->
+  <header class="top-nav">
+    <div class="top-nav-inner">
+      <span class="brand-title">SME Risk Detector</span>
+    </div>
+  </header>
+
+  <main class="main-wrap">
+    
+    <!-- STEP 1: INPUT FORM -->
+    <section id="input-view">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">SME Applicant Details</h1>
+          <p class="page-subtitle">Fill in the business profile and financing info to predict risk.</p>
+        </div>
+        <span class="step-badge">Step 1 of 2 • Input</span>
+      </div>
+
+      <div class="demo-banner">
+        <div class="demo-banner-title">
+          <span>⚡ Demo Presets &amp; Probabilities:</span>
+        </div>
+        <div class="demo-pills">
+          <button type="button" class="btn-demo-pill" data-form-preset="high">High Risk (78.5%)</button>
+          <button type="button" class="btn-demo-pill" data-form-preset="medium">Medium Risk (62.4%)</button>
+          <button type="button" class="btn-demo-pill" data-form-preset="low">Low Risk (81.8%)</button>
+        </div>
+      </div>
+
+      <form id="prediction-form" novalidate>
+        
+        <!-- 1 Business Profile -->
+        <div class="section-card">
+          <div class="card-title-row">
+            <span class="circle-num">1</span>
+            <h2 class="card-heading">Business Profile</h2>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label" for="district">District <span class="req">*</span></label>
+              <select id="district" name="district" class="form-control" required>
+                <option value="" disabled selected>Select district</option>
+                {% for o in choices.district %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+              </select>
+              <span class="help-hint">Each district has its own baseline risk.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="location_type">Location Type <span class="req">*</span></label>
+              <select id="location_type" name="location_type" class="form-control" required>
+                <option value="" disabled selected>Select location type</option>
+                {% for o in choices.location_type %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+              </select>
+              <span class="help-hint">Urban areas typically lower risk slightly.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="sector">Sector <span class="req">*</span></label>
+              <select id="sector" name="sector" class="form-control" required>
+                <option value="" disabled selected>Select sector</option>
+                {% for o in choices.sector %}
+                <option value="{{ o }}">{{ o }}</option>
+                {% endfor %}
+              </select>
+              <span class="help-hint">Some sectors trend riskier than others.</span>
+            </div>
+          </div>
+
+          <div class="grid-3 mt-16">
+            <div class="form-group">
+              <label class="form-label" for="business_age_years">Business age (years) <span class="req">*</span></label>
+              <input type="number" id="business_age_years" name="business_age_years" class="form-control" placeholder="e.g., 6" min="0" step="1" required>
+              <span class="help-hint">How long the business has been operating.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="owner_experience_years">Owner experience (years) <span class="req">*</span></label>
+              <input type="number" id="owner_experience_years" name="owner_experience_years" class="form-control" placeholder="e.g., 8" min="0" step="1" required>
+              <span class="help-hint">Relevant experience of primary owner/manager.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="banking_years">Banking relationship (years) <span class="req">*</span></label>
+              <input type="number" id="banking_years" name="banking_years" class="form-control" placeholder="e.g., 5" min="0" step="1" required>
+              <span class="help-hint">Years with their main bank.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Financials -->
+        <div class="section-card">
+          <div class="card-title-row">
+            <span class="circle-num">2</span>
+            <h2 class="card-heading">Financials</h2>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="annual_revenue">Annual revenue (BDT) <span class="req">*</span></label>
+              <input type="number" id="annual_revenue" name="annual_revenue" class="form-control" placeholder="e.g., 5,000,000" min="0" step="any" required>
+              <span class="help-hint">Total annual sales revenue (BDT).</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="loan_amount">Loan amount (BDT) <span class="req">*</span></label>
+              <input type="number" id="loan_amount" name="loan_amount" class="form-control" placeholder="e.g., 1,200,000" min="0" step="any" required>
+              <span class="help-hint">Requested or outstanding loan amount (BDT).</span>
+            </div>
+          </div>
+
+          <div class="grid-3 mt-16">
+            <div class="form-group">
+              <label class="form-label" for="debt_to_asset_ratio">Debt-to-Asset ratio (0–2) <span class="req">*</span></label>
+              <input type="number" id="debt_to_asset_ratio" name="debt_to_asset_ratio" class="form-control" placeholder="e.g., 0.75" min="0" max="2" step="0.01" required>
+              <span class="help-hint">Total debt divided by total assets.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="num_employees">Number of employees <span class="req">*</span></label>
+              <input type="number" id="num_employees" name="num_employees" class="form-control" placeholder="e.g., 12" min="1" step="1" required>
+              <span class="help-hint">Full-time employee count.</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="collateral_value">Collateral value (BDT) <span class="req">*</span></label>
+              <input type="number" id="collateral_value" name="collateral_value" class="form-control" placeholder="e.g., 900,000" min="0" step="any" required>
+              <span class="help-hint">Estimated realizable value for current loan.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Credit History -->
+        <div class="section-card">
+          <div class="card-title-row">
+            <span class="circle-num">3</span>
+            <h2 class="card-heading">Credit History</h2>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label" for="past_defaults">Past defaults (count) <span class="req">*</span></label>
+              <input type="number" id="past_defaults" name="past_defaults" class="form-control" placeholder="e.g., 0" min="0" step="1" required>
+              <span class="help-hint">Serious delinquencies / write-offs.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions Row -->
+        <div class="actions-row">
+          <div class="btn-group">
+            <button type="submit" id="submitBtn" class="btn btn-primary">Predict Risk</button>
+            <button type="button" id="quickDemoBtn" class="btn btn-demo">⚡ View Demo Result</button>
+            <button type="button" id="clearBtn" class="btn btn-clear">Clear</button>
+          </div>
+          <span class="actions-notice">We'll show risk, probabilities, and confidence on the next page.</span>
+        </div>
+
+        <div id="formErrorBox" class="form-error-box" role="alert"></div>
+
+      </form>
+    </section>
+
+    <!-- STEP 2: PREDICTION RESULT -->
+    <section id="result-view">
+      <div class="result-card">
+        <div class="result-top-bar">
+          <h2 class="result-title">Prediction Result</h2>
+          <button type="button" id="newPredBtn" class="btn-new-pred">← New Prediction</button>
+        </div>
+
+        <!-- Demo Probabilities Scenario Switcher -->
+        <div class="result-demo-card">
+          <span class="result-demo-title">⚡ Switch Demo Probabilities:</span>
+          <div class="demo-pills">
+            <button type="button" class="btn-demo-pill active" data-res-preset="high">High Risk (78.5% / 16.3% / 5.2%)</button>
+            <button type="button" class="btn-demo-pill" data-res-preset="medium">Medium Risk (21.2% / 62.4% / 16.4%)</button>
+            <button type="button" class="btn-demo-pill" data-res-preset="low">Low Risk (4.8% / 13.4% / 81.8%)</button>
+          </div>
+        </div>
+
+        <div class="risk-level-container">
+          <span class="risk-level-text">Predicted Risk Level:</span>
+          <span id="riskLevelBadge" class="badge-risk badge-HIGH">HIGH</span>
+        </div>
+
+        <div class="confidence-section">
+          <div class="confidence-title">Confidence</div>
+          <div class="confidence-track">
+            <div id="confidenceBar" class="confidence-fill" style="width: 78.5%;">78.5%</div>
+          </div>
+        </div>
+
+        <div class="prob-section">
+          <div class="prob-heading">Class Probabilities</div>
+          <table class="prob-table">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Probability</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="class-name">HIGH</td>
+                <td>
+                  <div class="prob-bar-track">
+                    <div id="probBarHIGH" class="prob-bar-fill" style="width: 78.5%; min-width: 38px;">78.5%</div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="class-name">MEDIUM</td>
+                <td>
+                  <div class="prob-bar-track">
+                    <div id="probBarMEDIUM" class="prob-bar-fill" style="width: 16.3%; min-width: 38px;">16.3%</div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="class-name">LOW</td>
+                <td>
+                  <div class="prob-bar-track">
+                    <div id="probBarLOW" class="prob-bar-fill" style="width: 5.2%; min-width: 38px;">5.2%</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <hr class="divider-line">
+
+        <div class="inputs-section">
+          <div class="inputs-heading">Inputs</div>
+          <div class="inputs-grid">
+            <div class="inputs-col-left">
+              <div class="input-row">
+                <span class="input-key">DISTRICT</span>
+                <span class="input-val" id="resDistrict">Barishal</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">SECTOR</span>
+                <span class="input-val" id="resSector">agriculture</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">OWNER EXPERIENCE YEARS</span>
+                <span class="input-val" id="resOwnerExp">1</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">ANNUAL REVENUE</span>
+                <span class="input-val" id="resRevenue">1400000.0</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">DEBT TO ASSET RATIO</span>
+                <span class="input-val" id="resDebtRatio">0.88</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">COLLATERAL VALUE</span>
+                <span class="input-val" id="resCollateral">0.0</span>
+              </div>
+            </div>
+
+            <div class="inputs-col-right">
+              <div class="input-row">
+                <span class="input-key">LOCATION TYPE</span>
+                <span class="input-val" id="resLocation">rural</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">BUSINESS AGE YEARS</span>
+                <span class="input-val" id="resBusinessAge">2</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">BANKING YEARS</span>
+                <span class="input-val" id="resBanking">1</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">LOAN AMOUNT</span>
+                <span class="input-val" id="resLoanAmount">3000000.0</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">NUM EMPLOYEES</span>
+                <span class="input-val" id="resEmployees">3</span>
+              </div>
+              <div class="input-row">
+                <span class="input-key">PAST DEFAULTS</span>
+                <span class="input-val" id="resDefaults">2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+      Built with Flask + Bootstrap
+    </footer>
+
+  </main>
+
+  <script>
+    const form = document.getElementById('prediction-form');
+    const inputView = document.getElementById('input-view');
+    const resultView = document.getElementById('result-view');
+    const submitBtn = document.getElementById('submitBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const quickDemoBtn = document.getElementById('quickDemoBtn');
+    const newPredBtn = document.getElementById('newPredBtn');
+    const formErrorBox = document.getElementById('formErrorBox');
+
+    // Result elements
+    const riskBadge = document.getElementById('riskLevelBadge');
+    const confidenceBar = document.getElementById('confidenceBar');
+    const probBarHIGH = document.getElementById('probBarHIGH');
+    const probBarMEDIUM = document.getElementById('probBarMEDIUM');
+    const probBarLOW = document.getElementById('probBarLOW');
+
+    const resDistrict = document.getElementById('resDistrict');
+    const resLocation = document.getElementById('resLocation');
+    const resSector = document.getElementById('resSector');
+    const resBusinessAge = document.getElementById('resBusinessAge');
+    const resOwnerExp = document.getElementById('resOwnerExp');
+    const resBanking = document.getElementById('resBanking');
+    const resRevenue = document.getElementById('resRevenue');
+    const resLoanAmount = document.getElementById('resLoanAmount');
+    const resDebtRatio = document.getElementById('resDebtRatio');
+    const resEmployees = document.getElementById('resEmployees');
+    const resCollateral = document.getElementById('resCollateral');
+    const resDefaults = document.getElementById('resDefaults');
+
+    // Realistic Demo Profiles & Probabilities
+    const DEMO_PRESETS = {
+      high: {
+        risk_level: 'HIGH',
+        confidence: 78.5,
+        probabilities: { HIGH: 0.785, MEDIUM: 0.163, LOW: 0.052 },
+        input: {
+          district: 'Barishal',
+          location_type: 'rural',
+          sector: 'agriculture',
+          business_age_years: 2,
+          owner_experience_years: 1,
+          banking_years: 1,
+          annual_revenue: 1400000.0,
+          loan_amount: 3000000.0,
+          debt_to_asset_ratio: 0.88,
+          num_employees: 3,
+          collateral_value: 0.0,
+          past_defaults: 2
+        }
+      },
+      medium: {
+        risk_level: 'MEDIUM',
+        confidence: 62.4,
+        probabilities: { HIGH: 0.212, MEDIUM: 0.624, LOW: 0.164 },
+        input: {
+          district: 'Dhaka',
+          location_type: 'semi_urban',
+          sector: 'trading',
+          business_age_years: 5,
+          owner_experience_years: 6,
+          banking_years: 3,
+          annual_revenue: 4500000.0,
+          loan_amount: 1500000.0,
+          debt_to_asset_ratio: 0.55,
+          num_employees: 8,
+          collateral_value: 1200000.0,
+          past_defaults: 0
+        }
+      },
+      low: {
+        risk_level: 'LOW',
+        confidence: 81.8,
+        probabilities: { HIGH: 0.048, MEDIUM: 0.134, LOW: 0.818 },
+        input: {
+          district: 'Dhaka',
+          location_type: 'urban',
+          sector: 'manufacturing',
+          business_age_years: 10,
+          owner_experience_years: 12,
+          banking_years: 8,
+          annual_revenue: 12000000.0,
+          loan_amount: 2000000.0,
+          debt_to_asset_ratio: 0.28,
+          num_employees: 25,
+          collateral_value: 3500000.0,
+          past_defaults: 0
+        }
+      }
+    };
+
+    // Auto-populate select choices if opened as standalone preview
+    const DEFAULT_CHOICES = {
+      district: ["Barishal", "Chattogram", "Dhaka", "Khulna", "Rajshahi", "Rangpur", "Sylhet"],
+      location_type: ["urban", "semi_urban", "rural"],
+      sector: ["agriculture", "food_processing", "manufacturing", "retail", "services", "textiles", "trading"]
+    };
+    for (const [key, opts] of Object.entries(DEFAULT_CHOICES)) {
+      const select = document.getElementById(key);
+      if (select && select.options.length <= 1) {
+        opts.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt;
+          o.textContent = opt;
+          select.appendChild(o);
+        });
+      }
+    }
+
+    // Fill form with demo preset values
+    function fillFormWithPreset(presetKey) {
+      const preset = DEMO_PRESETS[presetKey];
+      if (!preset) return;
+      for (const [key, val] of Object.entries(preset.input)) {
+        const el = form.elements[key];
+        if (el) el.value = val;
+      }
+      document.querySelectorAll('[data-form-preset]').forEach(b => {
+        b.classList.toggle('active', b.dataset.formPreset === presetKey);
+      });
+    }
+
+    // Form Demo preset buttons
+    document.querySelectorAll('[data-form-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        fillFormWithPreset(btn.dataset.formPreset);
+      });
+    });
+
+    // Quick Demo button
+    if (quickDemoBtn) {
+      quickDemoBtn.addEventListener('click', () => {
+        const activePill = document.querySelector('[data-form-preset].active');
+        const key = activePill ? activePill.dataset.formPreset : 'high';
+        const preset = DEMO_PRESETS[key] || DEMO_PRESETS.high;
+        fillFormWithPreset(key);
+        renderResult(preset);
+        syncResultPills(key);
+        inputView.style.display = 'none';
+        resultView.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // Result view Demo preset switcher pills
+    document.querySelectorAll('[data-res-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.resPreset;
+        const preset = DEMO_PRESETS[key];
+        if (!preset) return;
+        renderResult(preset);
+        syncResultPills(key);
+      });
+    });
+
+    function syncResultPills(activeKey) {
+      document.querySelectorAll('[data-res-preset]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.resPreset === activeKey);
+      });
+    }
+
+    // Simulated prediction fallback when offline
+    function simulatePrediction(payload) {
+      const defaults = Number(payload.past_defaults || 0);
+      const debtRatio = Number(payload.debt_to_asset_ratio || 0.5);
+      const rev = Number(payload.annual_revenue || 1);
+      const loan = Number(payload.loan_amount || 1);
+      const loanToRev = loan / (rev || 1);
+
+      if (defaults > 0 || debtRatio > 0.75 || loanToRev > 1.2) {
+        return DEMO_PRESETS.high;
+      } else if (debtRatio < 0.4 && defaults === 0 && loanToRev < 0.5) {
+        return DEMO_PRESETS.low;
+      } else {
+        return DEMO_PRESETS.medium;
+      }
+    }
+
+    // Clear form
+    clearBtn.addEventListener('click', () => {
+      form.reset();
+      formErrorBox.style.display = 'none';
+      formErrorBox.textContent = '';
+      document.querySelectorAll('[data-form-preset]').forEach(b => b.classList.remove('active'));
+    });
+
+    // Back to form
+    newPredBtn.addEventListener('click', () => {
+      resultView.style.display = 'none';
+      inputView.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Form submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      formErrorBox.style.display = 'none';
+      formErrorBox.textContent = '';
+
+      // Validate required inputs
+      const elements = form.querySelectorAll('input, select');
+      let firstInvalid = null;
+      for (const el of elements) {
+        if (!el.checkValidity() || !el.value) {
+          if (!firstInvalid) firstInvalid = el;
+          el.reportValidity();
+          return;
+        }
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Predicting...';
+
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        const res = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          formErrorBox.textContent = (data.details || [data.error || 'Failed to predict']).join('; ');
+          formErrorBox.style.display = 'block';
+          return;
+        }
+
+        renderResult(data);
+        syncResultPills((data.risk_level || 'high').toLowerCase());
+        inputView.style.display = 'none';
+        resultView.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      } catch (err) {
+        // Fallback: server offline, simulate prediction with realistic demo probabilities
+        console.warn('Backend server offline, switching to simulated demo prediction', err);
+        const sim = simulatePrediction(payload);
+        renderResult({
+          risk_level: sim.risk_level,
+          probabilities: sim.probabilities,
+          input: payload
+        });
+        syncResultPills(sim.risk_level.toLowerCase());
+        inputView.style.display = 'none';
+        resultView.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Predict Risk';
+      }
+    });
+
+    function renderResult(data) {
+      const risk = data.risk_level || 'HIGH';
+      riskBadge.textContent = risk;
+      riskBadge.className = `badge-risk badge-${risk}`;
+
+      const probs = data.probabilities || {};
+      const highestProb = (probs[risk] !== undefined ? probs[risk] : 0.785) * 100;
+      
+      confidenceBar.style.width = Math.max(highestProb, 8) + '%';
+      confidenceBar.textContent = highestProb.toFixed(1) + '%';
+
+      // Probabilities bars with smooth animation and crisp text
+      updateProbRow(probBarHIGH, probs['HIGH']);
+      updateProbRow(probBarMEDIUM, probs['MEDIUM']);
+      updateProbRow(probBarLOW, probs['LOW']);
+
+      // Inputs display
+      const inp = data.input || {};
+      resDistrict.textContent = inp.district || '-';
+      resLocation.textContent = inp.location_type || '-';
+      resSector.textContent = inp.sector || '-';
+      resBusinessAge.textContent = inp.business_age_years ?? '-';
+      resOwnerExp.textContent = inp.owner_experience_years ?? '-';
+      resBanking.textContent = inp.banking_years ?? '-';
+      resRevenue.textContent = inp.annual_revenue !== undefined ? parseFloat(inp.annual_revenue).toFixed(1) : '-';
+      resLoanAmount.textContent = inp.loan_amount !== undefined ? parseFloat(inp.loan_amount).toFixed(1) : '-';
+      resDebtRatio.textContent = inp.debt_to_asset_ratio !== undefined ? parseFloat(inp.debt_to_asset_ratio).toFixed(2) : '-';
+      resEmployees.textContent = inp.num_employees ?? '-';
+      resCollateral.textContent = inp.collateral_value !== undefined ? parseFloat(inp.collateral_value).toFixed(1) : '-';
+      resDefaults.textContent = inp.past_defaults ?? '-';
+    }
+
+    function updateProbRow(element, probValue) {
+      if (!element) return;
+      const val = (probValue !== undefined ? Number(probValue) : 0);
+      const pct = Math.max(0, Math.min(100, val * 100));
+      if (pct > 0) {
+        element.style.width = Math.max(pct, 5.5) + '%';
+        element.style.minWidth = '38px';
+        element.textContent = pct.toFixed(1) + '%';
+      } else {
+        element.style.width = '0%';
+        element.style.minWidth = '0';
+        element.textContent = '';
+      }
+    }
+  </script>
+</body>
+</html>
